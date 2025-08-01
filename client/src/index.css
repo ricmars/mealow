@@ -122,6 +122,18 @@
     @apply bg-white rounded-t-2xl p-6;
     animation: slideUp 0.3s ease-out;
   }
+  
+  /* Ensure dialogs stay within mobile container */
+  [data-radix-popper-content-wrapper] {
+    transform: none !important;
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    max-width: 28rem !important;
+    width: calc(100vw - 2rem) !important;
+    max-height: 90vh !important;
+  }
 
   @keyframes slideUp {
     from {

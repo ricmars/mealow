@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { X, Clock, Users, BarChart3, Check, AlertCircle } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { apiRequest } from "@/lib/queryClient";
@@ -85,25 +84,30 @@ export default function RecipeDetailModal({
     );
   };
 
+  if (!open) return null;
+
   if (!recipe || isLoading) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="fixed inset-4 bg-white rounded-2xl overflow-hidden max-w-md mx-auto">
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-              <p className="text-gray-500">Loading recipe...</p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl max-w-md w-full p-6 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-gray-500">Loading recipe...</p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="fixed inset-4 bg-white rounded-2xl overflow-hidden max-w-md mx-auto p-0">
-        <div className="h-full flex flex-col">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onOpenChange(false);
+        }
+      }}
+    >
+      <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col">
           {/* Recipe Header */}
           <div className="relative">
             {recipe.imageUrl ? (
@@ -123,7 +127,7 @@ export default function RecipeDetailModal({
             <Button
               variant="secondary"
               size="sm"
-              className="absolute top-4 right-4 w-10 h-10 rounded-full"
+              className="absolute top-4 right-4 w-10 h-10 rounded-full z-10"
               onClick={() => onOpenChange(false)}
             >
               <X size={16} />
@@ -222,7 +226,7 @@ export default function RecipeDetailModal({
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
