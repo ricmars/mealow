@@ -118,6 +118,7 @@ npm run db:push
 2. **Database Connection**: Verify `DATABASE_URL` is correct and accessible
 3. **Environment Variables**: Ensure all required variables are set in Vercel
 4. **API Routes**: Check that `/api/*` routes are working correctly
+5. **npm Warnings**: Warnings about deprecated packages are normal and won't break the build
 
 ### Debugging
 
@@ -125,6 +126,19 @@ npm run db:push
 2. Verify environment variables are set correctly
 3. Test database connectivity
 4. Check browser console for client-side errors
+
+### Build Process
+
+The build process includes:
+1. `npm install` - Installs dependencies (warnings about deprecated packages are normal)
+2. `npm run vercel-build` - Builds the React frontend with Vite
+3. Server deployment - Express server is deployed as a serverless function
+
+### Environment Variables Required
+
+Make sure these are set in your Vercel project settings:
+- `DATABASE_URL` (required) - PostgreSQL connection string
+- `NODE_ENV` (optional) - Set to "production" for production builds
 
 ## File Structure for Vercel
 
