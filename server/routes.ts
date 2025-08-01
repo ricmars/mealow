@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { insertIngredientSchema, insertCookingHistorySchema } from "@shared/schema";
 import { generateRecipeSuggestions, optimizeInventoryUsage, generateRecipeImage } from "./services/openai";
 import { z } from "zod";
+import * as fs from "node:fs";
+import path from "node:path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Ingredients routes
@@ -82,8 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           cookingTime: suggestion.cookingTime,
           difficulty: suggestion.difficulty,
           instructions: JSON.stringify(suggestion.instructions),
-          matchPercentage: suggestion.matchPercentage,
-          imageUrl: suggestion.imageUrl
+          matchPercentage: suggestion.matchPercentage
         });
 
         // Store recipe ingredients
@@ -99,7 +100,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         savedRecipes.push({
           ...recipe,
           ingredients: suggestion.requiredIngredients,
-          instructions: suggestion.instructions
+          instructions: suggestion.instructions,
+          // Convert base64 image data to data URL for frontend
+          imageUrl: recipe.imageData && recipe.imageMimeType 
+            ? `data:${recipe.imageMimeType};base64,${recipe.imageData}`
+            : undefined
         });
       }
 
@@ -122,7 +127,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return {
             ...recipe,
             instructions: JSON.parse(recipe.instructions),
-            ingredients: ingredients
+            ingredients: ingredients,
+            // Convert base64 image data to data URL for frontend
+            imageUrl: recipe.imageData && recipe.imageMimeType 
+              ? `data:${recipe.imageMimeType};base64,${recipe.imageData}`
+              : undefined
           };
         })
       );
@@ -166,7 +175,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         ...recipe,
         instructions: JSON.parse(recipe.instructions),
-        ingredients: updatedIngredients
+        ingredients: updatedIngredients,
+        // Convert base64 image data to data URL for frontend
+        imageUrl: recipe.imageData && recipe.imageMimeType 
+          ? `data:${recipe.imageMimeType};base64,${recipe.imageData}`
+          : undefined
       });
     } catch (error) {
       console.error("Error fetching recipe:", error);
@@ -188,14 +201,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const imageUrl = await generateRecipeImage(recipe.name, recipe.description || "");
       
       if (imageUrl) {
-        // Update recipe with new image URL
-        await storage.updateRecipe(id, { imageUrl });
+        // Read the image file and convert to base64
+        const imagePath = path.join(process.cwd(), imageUrl.substring(1)); // Remove leading slash
         
-        res.json({ 
-          success: true, 
-          imageUrl,
-          message: "Image generated successfully!" 
-        });
+        if (fs.existsSync(imagePath)) {
+          const imageBuffer = fs.readFileSync(imagePath);
+          const base64Image = imageBuffer.toString('base64');
+          
+          // Update recipe with image data and MIME type
+          await storage.updateRecipe(id, { 
+            imageData: base64Image,
+            imageMimeType: 'image/png'
+          });
+          
+          res.json({ 
+            success: true, 
+            imageUrl,
+            message: "Image generated successfully!" 
+          });
+        } else {
+          res.status(500).json({ error: "Generated image file not found" });
+        }
       } else {
         res.status(500).json({ error: "Failed to generate image" });
       }

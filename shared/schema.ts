@@ -23,7 +23,8 @@ export const recipes = pgTable("recipes", {
   cookingTime: integer("cooking_time"), // in minutes
   difficulty: text("difficulty").notNull(), // Easy, Medium, Hard
   instructions: text("instructions").notNull(), // JSON string of steps
-  imageUrl: text("image_url"),
+  imageData: text("image_data"), // Store image as base64 encoded string
+  imageMimeType: text("image_mime_type"), // Store MIME type for proper handling
   matchPercentage: integer("match_percentage"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
