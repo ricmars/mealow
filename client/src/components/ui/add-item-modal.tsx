@@ -74,7 +74,10 @@ export default function AddItemModal({ open, onOpenChange }: AddItemModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white rounded-t-2xl p-6 modal-content">
+      <DialogContent 
+        className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white rounded-t-2xl p-6 modal-content"
+        aria-describedby="add-item-description"
+      >
         <DialogHeader className="flex justify-between items-center mb-4">
           <DialogTitle className="text-lg font-semibold text-gray-900">
             Add New Item
@@ -88,6 +91,10 @@ export default function AddItemModal({ open, onOpenChange }: AddItemModalProps) 
             <X size={20} />
           </Button>
         </DialogHeader>
+        
+        <p id="add-item-description" className="sr-only">
+          Add a new ingredient to your fridge inventory with name, quantity, category, and optional expiration date.
+        </p>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
