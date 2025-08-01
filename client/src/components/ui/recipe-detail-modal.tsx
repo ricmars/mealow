@@ -34,6 +34,7 @@ export default function RecipeDetailModal({
   open, 
   onOpenChange 
 }: RecipeDetailModalProps) {
+  const [cookingMode, setCookingMode] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -107,7 +108,7 @@ export default function RecipeDetailModal({
       }}
     >
       <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden">
-        <div className="flex-1 flex flex-col">
+        <div className="flex flex-col h-full">
           {/* Recipe Header */}
           <div className="relative">
             {recipe.imageUrl ? (
@@ -135,7 +136,7 @@ export default function RecipeDetailModal({
           </div>
 
           {/* Recipe Content */}
-          <ScrollArea className="flex-1 p-6">
+          <div className="flex-1 overflow-y-auto p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-2">{recipe.name}</h2>
             <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
               <div className="flex items-center gap-1">
@@ -204,26 +205,44 @@ export default function RecipeDetailModal({
                 ))}
               </div>
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Action Buttons */}
-          <div className="p-6 border-t border-gray-200">
-            <div className="flex space-x-3">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => onOpenChange(false)}
-              >
-                Maybe Later
-              </Button>
-              <Button
-                className="flex-1 bg-primary hover:bg-primary/90"
-                onClick={() => cookRecipeMutation.mutate()}
-                disabled={cookRecipeMutation.isPending}
-              >
-                {cookRecipeMutation.isPending ? "Cooking..." : "Start Cooking"}
-              </Button>
-            </div>
+          <div className="border-t border-gray-200 p-4 flex-shrink-0">
+            {!cookingMode ? (
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Close
+                </Button>
+                <Button
+                  className="flex-1 bg-primary hover:bg-primary/90"
+                  onClick={() => setCookingMode(true)}
+                >
+                  Cook This Recipe
+                </Button>
+              </div>
+            ) : (
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setCookingMode(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  onClick={() => cookRecipeMutation.mutate()}
+                  disabled={cookRecipeMutation.isPending}
+                >
+                  {cookRecipeMutation.isPending ? "Completing..." : "Complete"}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
