@@ -56,7 +56,7 @@ export default function Home() {
       return response.json();
     },
     onSuccess: (recipes) => {
-      queryClient.setQueryData(["/api/recipes/suggested"], recipes);
+      queryClient.setQueryData(["/api/recipes"], recipes);
       toast({
         title: "Recipes Suggested!",
         description: `Found ${recipes.length} recipes for you.`,
@@ -72,8 +72,8 @@ export default function Home() {
   });
 
   const { data: suggestedRecipes } = useQuery<Recipe[]>({
-    queryKey: ["/api/recipes/suggested"],
-    enabled: false,
+    queryKey: ["/api/recipes"],
+    enabled: true, // Enable the query to fetch recipes on page load
   });
 
   const handleSuggestMeals = () => {

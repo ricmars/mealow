@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertIngredientSchema, insertCookingHistorySchema } from "@shared/schema";
-import { generateRecipeSuggestions, optimizeInventoryUsage } from "./services/openai";
+import { generateRecipeSuggestions, optimizeInventoryUsage, generateRecipeImage } from "./services/openai";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -110,23 +110,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get recipe with ingredients
+  // Get all recipes route
+  app.get("/api/recipes", async (req, res) => {
+    try {
+      const recipes = await storage.getRecipes();
+      
+      // For each recipe, get its ingredients and parse instructions
+      const recipesWithDetails = await Promise.all(
+        recipes.map(async (recipe) => {
+          const ingredients = await storage.getRecipeIngredients(recipe.id);
+          return {
+            ...recipe,
+            instructions: JSON.parse(recipe.instructions),
+            ingredients: ingredients
+          };
+        })
+      );
+      
+      res.json(recipesWithDetails);
+    } catch (error) {
+      console.error("Error fetching recipes:", error);
+      res.status(500).json({ error: "Failed to fetch recipes" });
+    }
+  });
+
+  // Get recipe with ingredients (with real-time availability check)
   app.get("/api/recipes/:id", async (req, res) => {
     try {
       const { id } = req.params;
+      console.log("Fetching recipe with ID:", id);
       const recipe = await storage.getRecipeWithIngredients(id);
+      
+      if (!recipe) {
+        console.log("Recipe not found for ID:", id);
+        return res.status(404).json({ error: "Recipe not found" });
+      }
+      
+      console.log("Recipe found:", recipe.name);
+
+      // Get current ingredient availability for real-time validation
+      const currentIngredients = await storage.getIngredients();
+      
+      // Update ingredient availability based on current fridge contents
+      const updatedIngredients = recipe.ingredients.map(recipeIngredient => {
+        const currentIngredient = currentIngredients.find(
+          ing => ing.name.toLowerCase() === recipeIngredient.ingredientName.toLowerCase()
+        );
+        
+        return {
+          ...recipeIngredient,
+          available: !!currentIngredient // Update availability based on current fridge contents
+        };
+      });
+
+      res.json({
+        ...recipe,
+        instructions: JSON.parse(recipe.instructions),
+        ingredients: updatedIngredients
+      });
+    } catch (error) {
+      console.error("Error fetching recipe:", error);
+      res.status(500).json({ error: "Failed to fetch recipe" });
+    }
+  });
+
+  // Generate image for existing recipe
+  app.post("/api/recipes/:id/generate-image", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const recipe = await storage.getRecipe(id);
       
       if (!recipe) {
         return res.status(404).json({ error: "Recipe not found" });
       }
 
-      res.json({
-        ...recipe,
-        instructions: JSON.parse(recipe.instructions)
-      });
+      // Generate image using OpenAI
+      const imageUrl = await generateRecipeImage(recipe.name, recipe.description || "");
+      
+      if (imageUrl) {
+        // Update recipe with new image URL
+        await storage.updateRecipe(id, { imageUrl });
+        
+        res.json({ 
+          success: true, 
+          imageUrl,
+          message: "Image generated successfully!" 
+        });
+      } else {
+        res.status(500).json({ error: "Failed to generate image" });
+      }
     } catch (error) {
-      console.error("Error fetching recipe:", error);
-      res.status(500).json({ error: "Failed to fetch recipe" });
+      console.error("Error generating recipe image:", error);
+      res.status(500).json({ error: "Failed to generate image" });
     }
   });
 

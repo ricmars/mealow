@@ -41,8 +41,8 @@ export default function Recipes() {
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
 
   const { data: suggestedRecipes } = useQuery<Recipe[]>({
-    queryKey: ["/api/recipes/suggested"],
-    enabled: false,
+    queryKey: ["/api/recipes"],
+    enabled: true, // Enable the query to fetch recipes on page load
   });
 
   const { data: cookingHistory } = useQuery<CookingHistoryItem[]>({

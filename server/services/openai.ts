@@ -1,5 +1,8 @@
 import OpenAI from "openai";
 import { ClientSecretCredential } from "@azure/identity";
+import { GoogleGenAI, Modality } from "@google/genai";
+import * as fs from "node:fs";
+import path from "node:path";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 
@@ -18,7 +21,7 @@ async function getAzureToken(): Promise<string> {
 }
 
 const openai = new OpenAI({
-  apiKey: process.env.AZURE_OPENAI_ENDPOINT ? "dummy-key" : process.env.OPENAI_API_KEY,
+  apiKey: "dummy-key",
   baseURL: process.env.AZURE_OPENAI_ENDPOINT ? 
     `${process.env.AZURE_OPENAI_ENDPOINT}openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT}` : 
     undefined,
@@ -39,6 +42,61 @@ export interface RecipeSuggestion {
   }[];
   matchPercentage: number;
   imageUrl?: string;
+}
+
+export async function generateRecipeImage(recipeName: string, description: string): Promise<string> {
+  try {
+    // Use Google Gemini for image generation
+    if (!process.env.GEMINI_API_KEY) {
+      console.log("Gemini API key not available for image generation, skipping...");
+      return "";
+    }
+
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
+
+    const prompt = `A professional, appetizing photograph of ${recipeName}. ${description}. The dish should be beautifully plated on a clean white plate, with perfect lighting and restaurant-quality presentation. High resolution, food photography style, appetizing and vibrant colors.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash-preview-image-generation",
+      contents: prompt,
+      config: {
+        responseModalities: [Modality.TEXT, Modality.IMAGE],
+      },
+    });
+
+    // Create uploads directory if it doesn't exist
+    const uploadsDir = path.join(process.cwd(), "uploads");
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    // Generate a unique filename
+    const timestamp = Date.now();
+    const filename = `recipe-${timestamp}.png`;
+    const filepath = path.join(uploadsDir, filename);
+
+    if (response.candidates && response.candidates[0] && response.candidates[0].content && response.candidates[0].content.parts) {
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData && part.inlineData.data) {
+          const imageData = part.inlineData.data;
+          const buffer = Buffer.from(imageData, "base64");
+          fs.writeFileSync(filepath, buffer);
+          console.log(`Image saved as ${filename}`);
+          
+          // Return the relative path that can be served by the server
+          return `/uploads/${filename}`;
+        }
+      }
+    }
+
+    console.log("No image generated from Gemini response");
+    return "";
+  } catch (error) {
+    console.error("Error generating recipe image with Gemini:", error);
+    return ""; // Return empty string if image generation fails
+  }
 }
 
 export async function generateRecipeSuggestions(
@@ -132,7 +190,19 @@ Please respond with a JSON object containing an array of 3 recipes in this exact
     }
 
     const result = JSON.parse(response.choices[0].message.content || "{}");
-    return result.recipes || [];
+    const recipes = result.recipes || [];
+    
+    // Generate images for each recipe
+    for (const recipe of recipes) {
+      try {
+        recipe.imageUrl = await generateRecipeImage(recipe.name, recipe.description);
+      } catch (error) {
+        console.error(`Failed to generate image for ${recipe.name}:`, error);
+        recipe.imageUrl = "";
+      }
+    }
+    
+    return recipes;
   } catch (error) {
     console.error("Error generating recipe suggestions:", error);
     throw new Error("Failed to generate recipe suggestions: " + (error as Error).message);

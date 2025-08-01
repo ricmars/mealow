@@ -1,10 +1,16 @@
 import { useState } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { X, Clock, Users, BarChart3, Check, AlertCircle } from "lucide-react";
+import { X, Clock, Users, BarChart3, Check, AlertCircle, Image, Loader2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface RecipeDetailModalProps {
   recipeId: string | null;
@@ -37,10 +43,31 @@ export default function RecipeDetailModal({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: recipe, isLoading } = useQuery<RecipeDetails>({
+  // Get current ingredients to include in query key for real-time availability
+  const { data: currentIngredients } = useQuery({
+    queryKey: ["/api/ingredients"],
+    enabled: open, // Only fetch when modal is open
+  });
+
+  const { data: recipe, isLoading, error } = useQuery<RecipeDetails>({
     queryKey: ["/api/recipes", recipeId],
+    queryFn: async () => {
+      if (!recipeId) throw new Error("No recipe selected");
+      console.log("Fetching recipe:", recipeId);
+      const response = await fetch(`/api/recipes/${recipeId}`, {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch recipe: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("Recipe data received:", data);
+      return data;
+    },
     enabled: !!recipeId && open,
   });
+
+  console.log("Recipe query state:", { recipeId, open, isLoading, error, recipe });
 
   const cookRecipeMutation = useMutation({
     mutationFn: async () => {
@@ -50,6 +77,7 @@ export default function RecipeDetailModal({
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["/api/ingredients"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
       
       toast({
         title: "Recipe Completed!",
@@ -63,6 +91,38 @@ export default function RecipeDetailModal({
       toast({
         title: "Error",
         description: "Failed to complete recipe. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const generateImageMutation = useMutation({
+    mutationFn: async () => {
+      if (!recipeId) throw new Error("No recipe selected");
+      const response = await apiRequest("POST", `/api/recipes/${recipeId}/generate-image`, {});
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Invalidate the recipe query to refresh the data with the new image
+      queryClient.invalidateQueries({ queryKey: ["/api/recipes", recipeId] });
+      
+      if (data.imageUrl) {
+        toast({
+          title: "Image Generated!",
+          description: "AI-generated image has been created for this recipe.",
+        });
+      } else {
+        toast({
+          title: "Image Generation Unavailable",
+          description: "Image generation requires Gemini API key. Please check your configuration.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to generate image. Please check your Gemini API configuration.",
         variant: "destructive",
       });
     },
@@ -106,7 +166,14 @@ export default function RecipeDetailModal({
       <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden">
         {/* Recipe Header - Fixed */}
         <div className="relative flex-shrink-0">
-          {recipe.imageUrl ? (
+          {generateImageMutation.isPending ? (
+            <div className="w-full h-32 bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center justify-center">
+              <div className="text-center">
+                <Loader2 size={32} className="text-primary mx-auto mb-1 animate-spin" />
+                <p className="text-gray-600 text-sm">Generating AI image...</p>
+              </div>
+            </div>
+          ) : recipe.imageUrl ? (
             <img 
               src={recipe.imageUrl} 
               alt={recipe.name}
@@ -120,6 +187,8 @@ export default function RecipeDetailModal({
               </div>
             </div>
           )}
+          
+          {/* Close button */}
           <Button
             variant="secondary"
             size="sm"
@@ -128,6 +197,36 @@ export default function RecipeDetailModal({
           >
             <X size={14} />
           </Button>
+
+          {/* Generate Image button */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="absolute top-2 left-2 px-2 py-1 rounded-lg z-10 text-xs"
+                  onClick={() => generateImageMutation.mutate()}
+                  disabled={generateImageMutation.isPending}
+                >
+                  {generateImageMutation.isPending ? (
+                    <>
+                      <Loader2 size={12} className="mr-1 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Image size={12} className="mr-1" />
+                      {recipe.imageUrl ? "Regenerate" : "Generate"} Image
+                    </>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Generate an AI image of this dish using DALL-E</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {/* Recipe Content - Scrollable */}

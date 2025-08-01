@@ -38,6 +38,7 @@ export default function Inventory() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/ingredients"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/recipes/suggested"] });
       toast({
         title: "Item Deleted",
         description: "Item has been removed from your fridge.",

@@ -52,6 +52,7 @@ export default function AddItemModal({ open, onOpenChange }: AddItemModalProps) 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/ingredients"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/recipes/suggested"] });
       toast({
         title: "Success",
         description: "Item added to your fridge!",

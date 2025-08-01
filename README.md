@@ -33,9 +33,14 @@ Preferred communication style: Simple, everyday language.
 
 ### Schema Design
 - **Ingredients**: Core inventory items with categories, quantities, and expiration tracking
-- **Recipes**: AI-generated recipe suggestions with difficulty levels and cooking instructions
+- **Recipes**: AI-generated recipe suggestions with difficulty levels, cooking instructions, and AI-generated images
 - **Recipe Ingredients**: Many-to-many relationship between recipes and required ingredients
 - **Cooking History**: Track user cooking activity and ingredient usage patterns
+
+### AI Features
+- **Recipe Generation**: GPT-4o powered recipe suggestions based on available ingredients
+- **Image Generation**: Google Gemini 2.0 Flash integration for creating professional food photography of suggested dishes
+- **Smart Matching**: Intelligent ingredient matching with availability checking and waste reduction suggestions
 
 ### Authentication and Authorization
 - **Session Management**: PostgreSQL-backed sessions using connect-pg-simple
@@ -46,6 +51,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Third-Party Services
 - **Azure OpenAI**: GPT-4o integration via Azure AD authentication for intelligent recipe generation based on available ingredients
+- **Google Gemini**: AI image generation for creating appetizing dish photos using the same recipe context
 - **Azure Active Directory**: Authentication service for secure access to Azure OpenAI resources
 - **Neon Database**: Serverless PostgreSQL hosting with WebSocket support for real-time connections
 

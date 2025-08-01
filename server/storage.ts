@@ -25,6 +25,7 @@ export interface IStorage {
   getRecipes(): Promise<Recipe[]>;
   getRecipe(id: string): Promise<Recipe | undefined>;
   createRecipe(recipe: InsertRecipe): Promise<Recipe>;
+  updateRecipe(id: string, updates: Partial<InsertRecipe>): Promise<Recipe>;
   getRecipeWithIngredients(id: string): Promise<Recipe & { ingredients: RecipeIngredient[] } | undefined>;
   
   // Recipe Ingredients
@@ -94,6 +95,15 @@ export class DatabaseStorage implements IStorage {
       .values(recipe)
       .returning();
     return newRecipe;
+  }
+
+  async updateRecipe(id: string, updates: Partial<InsertRecipe>): Promise<Recipe> {
+    const [updatedRecipe] = await db
+      .update(recipes)
+      .set(updates)
+      .where(eq(recipes.id, id))
+      .returning();
+    return updatedRecipe;
   }
 
   async getRecipeWithIngredients(id: string): Promise<Recipe & { ingredients: RecipeIngredient[] } | undefined> {
