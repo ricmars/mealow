@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
-import { insertIngredientSchema, insertCookingHistorySchema } from "@shared/schema";
+import { insertIngredientSchema, insertCookingHistorySchema } from "../shared/schema.js";
 import { generateRecipeSuggestions, optimizeInventoryUsage, generateRecipeImage } from "./services/openai.js";
 import { z } from "zod";
 import * as fs from "node:fs";

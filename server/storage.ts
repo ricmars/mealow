@@ -7,9 +7,9 @@ import {
   type InsertRecipeIngredient,
   type CookingHistory,
   type InsertCookingHistory
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { db } from "./db.js";
-import { ingredients, recipes, recipeIngredients, cookingHistory } from "@shared/schema";
+import { ingredients, recipes, recipeIngredients, cookingHistory } from "../shared/schema.js";
 import { eq, desc, lt, gte } from "drizzle-orm";
 
 export interface IStorage {
