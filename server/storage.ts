@@ -8,7 +8,7 @@ import {
   type CookingHistory,
   type InsertCookingHistory
 } from "@shared/schema";
-import { db } from "./db";
+import { db } from "./db.js";
 import { ingredients, recipes, recipeIngredients, cookingHistory } from "@shared/schema";
 import { eq, desc, lt, gte } from "drizzle-orm";
 
