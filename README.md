@@ -74,7 +74,7 @@ Preferred communication style: Simple, everyday language.
 - **Vite**: Fast build tool with HMR and optimized bundling
 - **TypeScript**: Static type checking across frontend and backend
 - **ESBuild**: Fast JavaScript bundler for production builds
-- **Replit Integration**: Development environment with runtime error handling and cartographer plugin
+-
 
 ### Form Handling and Validation
 
