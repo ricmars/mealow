@@ -15,5 +15,13 @@
       "src": "/(.*)",
       "dest": "server/index.ts"
     }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "server/index.ts": {
+      "maxDuration": 30
+    }
+  }
 }
