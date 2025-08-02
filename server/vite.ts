@@ -3,7 +3,6 @@ import fs from "fs";
 import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
@@ -20,6 +19,18 @@ export function log(message: string, source = "express") {
 }
 
 export async function setupVite(app: Express, server: Server) {
+  // Only import vite config when actually needed (development mode)
+  let viteConfig;
+  try {
+    const config = await import("../vite.config.js");
+    viteConfig = config.default;
+  } catch (error) {
+    // In production, vite.config.js might not be available, but that's OK
+    // since setupVite is only called in development mode
+    console.warn("Could not load vite.config.js, using default config");
+    viteConfig = {};
+  }
+  
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
