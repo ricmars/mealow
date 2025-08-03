@@ -83,39 +83,46 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  // For Vercel deployment, try multiple possible paths for built files
-  const possiblePaths = [
-    path.resolve(import.meta.dirname, "..", "dist", "public"),
-    path.resolve(process.cwd(), "dist", "public"),
-    path.resolve(".", "dist", "public")
-  ];
+  // In Vercel, we need to serve the built files from the deployment
+  // The built files should be co-located with the server function
+  const distPath = path.join(process.cwd(), "dist", "public");
+  const indexPath = path.join(distPath, "index.html");
 
-  let distPath: string | null = null;
-  let fallbackPath: string | null = null;
+  console.log("Looking for static files at:", distPath);
+  console.log("Working directory:", process.cwd());
+  console.log("Files in cwd:", fs.readdirSync(process.cwd()));
 
-  // Find the correct path that exists
-  for (const testPath of possiblePaths) {
-    if (fs.existsSync(testPath)) {
-      distPath = testPath;
-      fallbackPath = path.join(testPath, "index.html");
-      break;
-    }
+  // Check if dist directory exists
+  if (fs.existsSync(path.join(process.cwd(), "dist"))) {
+    console.log("Files in dist:", fs.readdirSync(path.join(process.cwd(), "dist")));
   }
 
-  if (distPath) {
+  if (fs.existsSync(distPath)) {
     console.log("Serving static files from:", distPath);
     app.use(express.static(distPath));
   } else {
-    console.log("No static files found. Checked paths:", possiblePaths);
+    console.log("Static files directory not found at:", distPath);
   }
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    if (fallbackPath && fs.existsSync(fallbackPath)) {
-      res.sendFile(fallbackPath);
+  // Serve index.html for all non-API routes (SPA fallback)
+  app.get("*", (_req, res) => {
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
     } else {
-      console.log("Fallback index.html not found at:", fallbackPath);
-      res.status(404).send("Not found");
+      console.log("Index.html not found at:", indexPath);
+      // If we can't find the built files, serve a basic HTML response
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head><title>MealMind</title></head>
+          <body>
+            <div id="root">Loading...</div>
+            <script>
+              console.error('Static files not found. Build may have failed.');
+            </script>
+          </body>
+        </html>
+      `);
     }
   });
 }
