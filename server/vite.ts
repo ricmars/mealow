@@ -83,19 +83,39 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  // For Vercel deployment, the built files will be in the root
-  const distPath = path.resolve(import.meta.dirname, "..", "dist", "public");
-  const fallbackPath = path.resolve(import.meta.dirname, "..", "dist", "public", "index.html");
+  // For Vercel deployment, try multiple possible paths for built files
+  const possiblePaths = [
+    path.resolve(import.meta.dirname, "..", "dist", "public"),
+    path.resolve(process.cwd(), "dist", "public"),
+    path.resolve(".", "dist", "public"),
+    path.resolve(__dirname, "..", "dist", "public")
+  ];
 
-  if (fs.existsSync(distPath)) {
+  let distPath: string | null = null;
+  let fallbackPath: string | null = null;
+
+  // Find the correct path that exists
+  for (const testPath of possiblePaths) {
+    if (fs.existsSync(testPath)) {
+      distPath = testPath;
+      fallbackPath = path.join(testPath, "index.html");
+      break;
+    }
+  }
+
+  if (distPath) {
+    console.log("Serving static files from:", distPath);
     app.use(express.static(distPath));
+  } else {
+    console.log("No static files found. Checked paths:", possiblePaths);
   }
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
-    if (fs.existsSync(fallbackPath)) {
+    if (fallbackPath && fs.existsSync(fallbackPath)) {
       res.sendFile(fallbackPath);
     } else {
+      console.log("Fallback index.html not found at:", fallbackPath);
       res.status(404).send("Not found");
     }
   });
