@@ -1,8 +1,6 @@
 import OpenAI from "openai";
 import { ClientSecretCredential } from "@azure/identity";
 import { GoogleGenAI, Modality } from "@google/genai";
-import * as fs from "node:fs";
-import path from "node:path";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 
@@ -66,27 +64,14 @@ export async function generateRecipeImage(recipeName: string, description: strin
       },
     });
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(process.cwd(), "uploads");
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    // Generate a unique filename
-    const timestamp = Date.now();
-    const filename = `recipe-${timestamp}.png`;
-    const filepath = path.join(uploadsDir, filename);
-
     if (response.candidates && response.candidates[0] && response.candidates[0].content && response.candidates[0].content.parts) {
       for (const part of response.candidates[0].content.parts) {
         if (part.inlineData && part.inlineData.data) {
           const imageData = part.inlineData.data;
-          const buffer = Buffer.from(imageData, "base64");
-          fs.writeFileSync(filepath, buffer);
-          console.log(`Image saved as ${filename}`);
+          console.log(`Image generated successfully for ${recipeName}`);
           
-          // Return the relative path that can be served by the server
-          return `/uploads/${filename}`;
+          // Return base64 data directly (for serverless compatibility)
+          return imageData;
         }
       }
     }

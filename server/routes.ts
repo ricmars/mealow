@@ -4,8 +4,6 @@ import { storage } from "./storage.js";
 import { insertIngredientSchema, insertCookingHistorySchema } from "../shared/schema.js";
 import { generateRecipeSuggestions, optimizeInventoryUsage, generateRecipeImage } from "./services/openai.js";
 import { z } from "zod";
-import * as fs from "node:fs";
-import path from "node:path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Ingredients routes
@@ -197,31 +195,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Recipe not found" });
       }
 
-      // Generate image using OpenAI
-      const imageUrl = await generateRecipeImage(recipe.name, recipe.description || "");
+      // Generate image using Gemini (returns base64 data directly)
+      const base64ImageData = await generateRecipeImage(recipe.name, recipe.description || "");
       
-      if (imageUrl) {
-        // Read the image file and convert to base64
-        const imagePath = path.join(process.cwd(), imageUrl.substring(1)); // Remove leading slash
+      if (base64ImageData) {
+        // Update recipe with image data and MIME type
+        await storage.updateRecipe(id, { 
+          imageData: base64ImageData,
+          imageMimeType: 'image/png'
+        });
         
-        if (fs.existsSync(imagePath)) {
-          const imageBuffer = fs.readFileSync(imagePath);
-          const base64Image = imageBuffer.toString('base64');
-          
-          // Update recipe with image data and MIME type
-          await storage.updateRecipe(id, { 
-            imageData: base64Image,
-            imageMimeType: 'image/png'
-          });
-          
-          res.json({ 
-            success: true, 
-            imageUrl,
-            message: "Image generated successfully!" 
-          });
-        } else {
-          res.status(500).json({ error: "Generated image file not found" });
-        }
+        res.json({ 
+          success: true, 
+          imageUrl: `data:image/png;base64,${base64ImageData}`,
+          message: "Image generated successfully!" 
+        });
       } else {
         res.status(500).json({ error: "Failed to generate image" });
       }

@@ -10,11 +10,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Serve static files from uploads directory (if it exists)
-const uploadsPath = path.join(process.cwd(), "uploads");
-if (fs.existsSync(uploadsPath)) {
-  app.use("/uploads", express.static(uploadsPath));
-}
+// Note: Uploads are handled via base64 storage in database for serverless compatibility
 
 app.use((req, res, next) => {
   const start = Date.now();
